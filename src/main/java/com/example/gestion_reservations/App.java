@@ -1,216 +1,172 @@
+
 package com.example.gestion_reservations;
 
-import com.example.model.*;
-import javax.persistence.*;
-import java.time.LocalDateTime;
+import com.example.model.Utilisateur;
+import com.example.util.DataInitializer;
+
+import org.hibernate.SessionFactory;
+import org.hibernate.stat.Statistics;
+
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
 
 public class App {
 
     public static void main(String[] args) {
 
-        EntityManagerFactory emf = null;
-        EntityManager em = null;
+        EntityManagerFactory emf =
+                Persistence.createEntityManagerFactory(
+                        "gestion-reservations-pu"
+                );
 
         try {
-            emf = Persistence.createEntityManagerFactory(
-                    "gestion-reservations-pu"
-            );
-            em = emf.createEntityManager();
+            //  Initialiser les données de test
+            EntityManager em = emf.createEntityManager();
 
-            // TEST : orphanRemoval
-            System.out.println("\n========== TEST A : orphanRemoval ==========");
-
-            em.getTransaction().begin();
-
-            Utilisateur utilisateurA = new Utilisateur(
-                    "Alice Test A",
-                    "alice-test-a@example.com"
-            );
-
-            Salle salleA = new Salle(
-                    "Salle Test A", 20, "Premier étage"
-            );
-
-            Equipement equipementA =
-                    new Equipement("Projecteur Test A");
-
-            salleA.ajouterEquipement(equipementA);
-
-            em.persist(salleA);
-            em.persist(utilisateurA);
-
-            LocalDateTime debutA = LocalDateTime.now();
-
-            Reservation reservationA = new Reservation(
-                    debutA,
-                    debutA.plusHours(2),
-                    "CONFIRMEE"
-            );
-
-            utilisateurA.ajouterReservation(reservationA);
-            salleA.ajouterReservation(reservationA);
-
-            em.persist(reservationA);
-            em.getTransaction().commit();
-
-            Long utilisateurAId = utilisateurA.getId();
-            Long reservationAId = reservationA.getId();
-
-            System.out.println("Utilisateur créé : "
-                    + utilisateurA.getEmail());
-            System.out.println("Réservation créée : " + reservationAId);
-
-            // Retirer la réservation de la collection de l'utilisateur
-            em.getTransaction().begin();
-
-            Utilisateur utilisateurATest =
-                    em.find(Utilisateur.class, utilisateurAId);
-
-            Reservation reservationATest =
-                    em.find(Reservation.class, reservationAId);
-
-            if (utilisateurATest == null || reservationATest == null) {
-                throw new IllegalStateException(
-                        "Préparation du test A impossible."
-                );
-            }
-
-            Salle salleATest = reservationATest.getSalle();
-
-            utilisateurATest.retirerReservation(reservationATest);
-
-            // Synchroniser la collection de la salle
-            if (salleATest != null) {
-                salleATest.getReservations().remove(reservationATest);
-            }
-
-            em.flush();
-            em.getTransaction().commit();
-            em.clear();
-
-            Reservation resultatA =
-                    em.find(Reservation.class, reservationAId);
-
-            if (resultatA == null) {
-                System.out.println(
-                        "TEST A REUSSI : la réservation a été supprimée."
-                );
-            } else {
-                System.out.println(
-                        "TEST A ECHOUE : la réservation existe encore."
-                );
-            }
-
-            // TEST : suppression en cascade
-            System.out.println(
-                    "\n========== TEST B : suppression en cascade =========="
-            );
-
-            em.getTransaction().begin();
-
-            Utilisateur utilisateurB = new Utilisateur(
-                    "Bob Test B",
-                    "bob-test-b@example.com"
-            );
-
-            Salle salleB = new Salle(
-                    "Salle Test B", 15, "Deuxième étage"
-            );
-
-            Equipement equipementB =
-                    new Equipement("Ecran Test B");
-
-            salleB.ajouterEquipement(equipementB);
-
-            em.persist(salleB);
-            em.persist(utilisateurB);
-
-            LocalDateTime debutB = LocalDateTime.now();
-
-            Reservation reservationB1 = new Reservation(
-                    debutB,
-                    debutB.plusHours(1),
-                    "CONFIRMEE"
-            );
-
-            Reservation reservationB2 = new Reservation(
-                    debutB.plusDays(1),
-                    debutB.plusDays(1).plusHours(2),
-                    "EN_ATTENTE"
-            );
-
-            utilisateurB.ajouterReservation(reservationB1);
-            utilisateurB.ajouterReservation(reservationB2);
-
-            salleB.ajouterReservation(reservationB1);
-            salleB.ajouterReservation(reservationB2);
-
-            em.persist(reservationB1);
-            em.persist(reservationB2);
-
-            em.getTransaction().commit();
-
-            Long utilisateurBId = utilisateurB.getId();
-            Long reservationB1Id = reservationB1.getId();
-            Long reservationB2Id = reservationB2.getId();
-
-            System.out.println("Utilisateur créé : "
-                    + utilisateurB.getEmail());
-            System.out.println("Réservation B1 créée : " + reservationB1Id);
-            System.out.println("Réservation B2 créée : " + reservationB2Id);
-
-            // Supprimer l'utilisateur : ses réservations sont supprimées grâce à CascadeType.ALL dans Utilisateur.java
-            em.getTransaction().begin();
-
-            Utilisateur utilisateurBSupprimer =
-                    em.find(Utilisateur.class, utilisateurBId);
-
-            if (utilisateurBSupprimer != null) {
-                em.remove(utilisateurBSupprimer);
-            }
-
-            em.getTransaction().commit();
-            em.clear();
-
-            // Vérifier que l'utilisateur et ses réservations n'existent plus
-            Utilisateur resultatUtilisateurB =
-                    em.find(Utilisateur.class, utilisateurBId);
-
-            Reservation resultatB1 =
-                    em.find(Reservation.class, reservationB1Id);
-
-            Reservation resultatB2 =
-                    em.find(Reservation.class, reservationB2Id);
-
-            if (resultatUtilisateurB == null
-                    && resultatB1 == null
-                    && resultatB2 == null) {
-                System.out.println(
-                        "TEST B REUSSI : l'utilisateur et ses réservations "
-                                + "ont été supprimés."
-                );
-            } else {
-                System.out.println(
-                        "TEST B ECHOUE : certaines entités existent encore."
-                );
-            }
-
-        } catch (Exception e) {
-
-            if (em != null && em.getTransaction().isActive()) {
-                em.getTransaction().rollback();
-            }
-
-            System.err.println("\nERREUR PENDANT LES TESTS :");
-            e.printStackTrace();
-
-        } finally {
-
-            if (em != null && em.isOpen()) {
+            try {
+                new DataInitializer(em).initData();
+            } finally {
                 em.close();
             }
 
-            if (emf != null && emf.isOpen()) {
+            // Récupérer les statistiques Hibernate
+            SessionFactory sessionFactory =
+                    emf.unwrap(SessionFactory.class);
+
+            Statistics statistics =
+                    sessionFactory.getStatistics();
+
+            statistics.setStatisticsEnabled(true);
+
+            // Récupérer l'identifiant d'Alice sans charger son entité complète
+            EntityManager emId = emf.createEntityManager();
+
+            Long userId;
+
+            try {
+                userId = emId.createQuery(
+                        "SELECT u.id FROM Utilisateur u " +
+                        "WHERE u.email = :email",
+                        Long.class
+                )
+                .setParameter(
+                        "email",
+                        "alice.dupont@example.com"
+                )
+                .getSingleResult();
+            } finally {
+                emId.close();
+            }
+
+            // Vider le cache pour réaliser un test propre
+            sessionFactory.getCache()
+                    .evictEntityData(Utilisateur.class);
+
+            statistics.clear();
+
+            // Premier chargement
+            System.out.println(
+                    "\n========== PREMIER CHARGEMENT =========="
+            );
+
+            EntityManager em1 = emf.createEntityManager();
+
+            try {
+                Utilisateur utilisateur1 =
+                        em1.find(Utilisateur.class, userId);
+
+                if (utilisateur1 != null) {
+                    System.out.println(
+                            "Utilisateur trouvé : "
+                                    + utilisateur1.getNom()
+                    );
+
+                    System.out.println(
+                            "Email : "
+                                    + utilisateur1.getEmail()
+                    );
+                } else {
+                    System.out.println("Utilisateur introuvable.");
+                }
+            } finally {
+                em1.close();
+            }
+
+            System.out.println(
+                    "Hits du cache : "
+                            + statistics.getSecondLevelCacheHitCount()
+            );
+
+            System.out.println(
+                    "Misses du cache : "
+                            + statistics.getSecondLevelCacheMissCount()
+            );
+
+            // Deuxième chargement dans un nouvel EntityManager
+            System.out.println(
+                    "\n========== DEUXIEME CHARGEMENT =========="
+            );
+
+            EntityManager em2 = emf.createEntityManager();
+
+            try {
+                Utilisateur utilisateur2 =
+                        em2.find(Utilisateur.class, userId);
+
+                if (utilisateur2 != null) {
+                    System.out.println(
+                            "Utilisateur trouvé : "
+                                    + utilisateur2.getNom()
+                    );
+                } else {
+                    System.out.println("Utilisateur introuvable.");
+                }
+            } finally {
+                em2.close();
+            }
+
+            // Statistiques finales
+            System.out.println(
+                    "\n========== STATISTIQUES FINALES =========="
+            );
+
+            System.out.println(
+                    "Hits du cache de second niveau : "
+                            + statistics.getSecondLevelCacheHitCount()
+            );
+
+            System.out.println(
+                    "Misses du cache de second niveau : "
+                            + statistics.getSecondLevelCacheMissCount()
+            );
+
+            System.out.println(
+                    "Put dans le cache de second niveau : "
+                            + statistics.getSecondLevelCachePutCount()
+            );
+
+            System.out.println(
+                    "Entités chargées : "
+                            + statistics.getEntityLoadCount()
+            );
+
+            System.out.println(
+                    "Requêtes SQL exécutées : "
+                            + statistics.getPrepareStatementCount()
+            );
+
+            System.out.println("\nTest terminé.");
+
+        } catch (Exception e) {
+            System.err.println(
+                    "Erreur pendant l'exécution de l'application."
+            );
+            e.printStackTrace();
+
+        } finally {
+            //  Fermer l'EntityManagerFactory
+            if (emf.isOpen()) {
                 emf.close();
             }
         }

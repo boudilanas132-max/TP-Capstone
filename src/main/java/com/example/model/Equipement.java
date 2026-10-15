@@ -15,6 +15,7 @@ public class Equipement {
     @Column(nullable = false, unique = true)
     private String nom;
 
+    // Relation inverse avec Salle
     @ManyToMany(mappedBy = "equipements")
     private Set<Salle> salles = new HashSet<>();
 

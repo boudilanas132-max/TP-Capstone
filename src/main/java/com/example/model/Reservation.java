@@ -20,13 +20,19 @@ public class Reservation {
     @Column(nullable = false)
     private String statut;
 
+    // Plusieurs réservations peuvent concerner la même salle
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "salle_id", nullable = false)
+    private Salle salle;
+
+    // Un utilisateur peut effectuer plusieurs réservations
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "utilisateur_id", nullable = false)
     private Utilisateur utilisateur;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "salle_id", nullable = false)
-    private Salle salle;
+    // Contrôle des modifications concurrentes
+    @Version
+    private int version;
 
     public Reservation() {
     }
@@ -35,6 +41,14 @@ public class Reservation {
             LocalDateTime dateDebut,
             LocalDateTime dateFin,
             String statut) {
+
+        if (dateDebut == null || dateFin == null
+                || !dateFin.isAfter(dateDebut)) {
+            throw new IllegalArgumentException(
+                "La date de fin doit être après la date de début."
+            );
+        }
+
         this.dateDebut = dateDebut;
         this.dateFin = dateFin;
         this.statut = statut;
@@ -68,6 +82,14 @@ public class Reservation {
         this.statut = statut;
     }
 
+    public Salle getSalle() {
+        return salle;
+    }
+
+    public void setSalle(Salle salle) {
+        this.salle = salle;
+    }
+
     public Utilisateur getUtilisateur() {
         return utilisateur;
     }
@@ -76,11 +98,7 @@ public class Reservation {
         this.utilisateur = utilisateur;
     }
 
-    public Salle getSalle() {
-        return salle;
-    }
-
-    public void setSalle(Salle salle) {
-        this.salle = salle;
+    public int getVersion() {
+        return version;
     }
 }

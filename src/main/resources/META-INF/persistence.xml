@@ -6,15 +6,14 @@
 
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
 
-        <!-- Entités JPA -->
+        <!-- Entités du projet -->
+        <class>com.example.model.Utilisateur</class>
         <class>com.example.model.Salle</class>
         <class>com.example.model.Reservation</class>
-        <class>com.example.model.Utilisateur</class>
         <class>com.example.model.Equipement</class>
 
         <properties>
-
-            <!-- Configuration de la base de données H2 -->
+            <!-- Connexion à la base H2 -->
             <property name="javax.persistence.jdbc.driver"
                       value="org.h2.Driver"/>
 
@@ -27,21 +26,41 @@
             <property name="javax.persistence.jdbc.password"
                       value=""/>
 
-            <!-- Configuration Hibernate -->
+            <!-- Dialecte SQL -->
             <property name="hibernate.dialect"
                       value="org.hibernate.dialect.H2Dialect"/>
 
+            <!-- Création automatique des tables -->
             <property name="hibernate.hbm2ddl.auto"
                       value="update"/>
 
+            <!-- Affichage SQL -->
             <property name="hibernate.show_sql"
                       value="true"/>
 
             <property name="hibernate.format_sql"
                       value="true"/>
 
+            <!-- Cache de second niveau -->
+            <property name="hibernate.cache.use_second_level_cache"
+                      value="true"/>
+
+            <property name="hibernate.cache.region.factory_class"
+                      value="org.hibernate.cache.jcache.JCacheRegionFactory"/>
+
+            <property name="hibernate.javax.cache.provider"
+                      value="org.ehcache.jsr107.EhcacheCachingProvider"/>
+
+            <property name="hibernate.javax.cache.missing_cache_strategy"
+                      value="create"/>
+
+            <property name="hibernate.cache.use_query_cache"
+                      value="true"/>
+
+            <!-- Statistiques Hibernate -->
+            <property name="hibernate.generate_statistics"
+                      value="true"/>
         </properties>
 
     </persistence-unit>
-
 </persistence>

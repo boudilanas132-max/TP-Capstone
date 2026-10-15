@@ -2,10 +2,14 @@ package com.example.model;
 
 import javax.persistence.*;
 import java.util.HashSet;
+import org.hibernate.annotations.CacheConcurrencyStrategy;
 import java.util.Set;
 
 @Entity
 @Table(name = "salles")
+@org.hibernate.annotations.Cache(
+	    usage = CacheConcurrencyStrategy.READ_WRITE
+	)
 public class Salle {
 
     @Id
@@ -20,15 +24,17 @@ public class Salle {
 
     private String localisation;
 
-    // Une salle peut être associée à plusieurs réservations
+    // Une salle peut avoir plusieurs réservations
     @OneToMany(mappedBy = "salle")
     private Set<Reservation> reservations = new HashSet<>();
 
     // Une salle peut posséder plusieurs équipements
-    @ManyToMany(cascade = {
-        CascadeType.PERSIST,
-        CascadeType.MERGE
-    })
+    @ManyToMany(
+        cascade = {
+            CascadeType.PERSIST,
+            CascadeType.MERGE
+        }
+    )
     @JoinTable(
         name = "salle_equipement",
         joinColumns = @JoinColumn(name = "salle_id"),
@@ -77,30 +83,46 @@ public class Salle {
         return reservations;
     }
 
-    public void ajouterReservation(Reservation reservation) {
-        reservations.add(reservation);
-        reservation.setSalle(this);
-    }
-
-    public void retirerReservation(Reservation reservation) {
-        reservations.remove(reservation);
-
-        if (reservation.getSalle() == this) {
-            reservation.setSalle(null);
-        }
-    }
-
     public Set<Equipement> getEquipements() {
         return equipements;
     }
 
-    public void ajouterEquipement(Equipement equipement) {
-        equipements.add(equipement);
-        equipement.getSalles().add(this);
+    // Ajouter une réservation à la salle
+    public void ajouterReservation(Reservation reservation) {
+        if (reservation == null) {
+            throw new IllegalArgumentException(
+                "La réservation ne peut pas être null."
+            );
+        }
+
+        reservations.add(reservation);
+        reservation.setSalle(this);
     }
 
+    // Retirer la réservation de la collection en mémoire
+    public void retirerReservation(Reservation reservation) {
+        if (reservation != null) {
+            reservations.remove(reservation);
+        }
+    }
+
+    // Ajouter un équipement à la salle
+    public void ajouterEquipement(Equipement equipement) {
+        if (equipement == null) {
+            throw new IllegalArgumentException(
+                "L'équipement ne peut pas être null."
+            );
+        }
+
+        if (equipements.add(equipement)) {
+            equipement.getSalles().add(this);
+        }
+    }
+
+    // Retirer un équipement de la salle
     public void retirerEquipement(Equipement equipement) {
-        equipements.remove(equipement);
-        equipement.getSalles().remove(this);
+        if (equipement != null && equipements.remove(equipement)) {
+            equipement.getSalles().remove(this);
+        }
     }
 }
